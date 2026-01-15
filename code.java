@@ -66,10 +66,22 @@ public class code {
                 operators.pop();
                 index++;
             } else if (isOperator(current)) {
-                if (current == '-' && (index == 0 || normalized.charAt(index - 1) == '(' || isOperator(normalized.charAt(index - 1)))) {
+                if (isUnaryOperator(normalized, index)) {
                     int nextIndex = index + 1;
                     if (nextIndex >= normalized.length()) {
-                        throw new IllegalArgumentException("负号后缺少数字");
+                        throw new IllegalArgumentException("一元运算符后缺少数字或括号");
+                    }
+                    if (normalized.charAt(nextIndex) == '(') {
+                        values.push(BigDecimal.ZERO);
+                        operators.push(current == '+' ? '+' : '-');
+                        index++;
+                        continue;
+                    }
+                    if (current == '+') {
+                        NumberParseResult parseResult = parseNumber(normalized, nextIndex);
+                        values.push(parseResult.number);
+                        index = parseResult.nextIndex;
+                        continue;
                     }
                     NumberParseResult parseResult = parseNumber(normalized, nextIndex);
                     values.push(parseResult.number.negate());
@@ -107,6 +119,14 @@ public class code {
 
     private static boolean isOperator(char value) {
         return PRECEDENCE.containsKey(value);
+    }
+
+    private static boolean isUnaryOperator(String input, int index) {
+        char current = input.charAt(index);
+        if (current != '+' && current != '-') {
+            return false;
+        }
+        return index == 0 || input.charAt(index - 1) == '(' || isOperator(input.charAt(index - 1));
     }
 
     private static void applyOperator(Deque<BigDecimal> values, char operator) {
